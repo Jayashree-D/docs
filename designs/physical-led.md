@@ -74,19 +74,24 @@ This document proposes a new design for physical LED implementation.
 
    Device Tree
     - Physical Leds are defined in the device tree under "leds" section.
+
     - Corresponding GPIO pin are defined for the physical LEDs.
 
    OpenBMC - meta-phosphor
+
     1. "udev rules" are used to monitor the physical LEDs.
+
     2.  Once the udev event is initialized for the LED, it will save those LED
         name using the script in udev instead of triggering systemd service.
 
    Phosphor-led-sysfs
-    1.  Phosphor-led-sysfs will have a single systemd service
-        (xyz.openbmc_project.led.controller.service) running by default at
-        system startup.
-    2.  A dbus method call will be exposed from the service. udev will notify
-        notify the LEDs detected in the driver.
+
+    -  Phosphor-led-sysfs will have a single systemd service
+       (xyz.openbmc_project.led.controller.service) running by default at
+       system startup.
+
+    -  A dbus method call will be exposed from the service. udev will notify
+       notify the LEDs detected in the driver.
 
    **Example**
 
