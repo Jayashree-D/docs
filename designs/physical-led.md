@@ -28,7 +28,7 @@ The below diagram represents the overview for proposed physical LED design.
 
 ```
 
-    Device Tree                  BMC                     phosphor-led-sysfs
+    DEVICE TREE                  BMC                     PHOSPHOR-LED-SYSFS
 
    +------------+    Pin 1    +----------+              +--------------------+
    |            |------------>|          |              |                    |
@@ -73,25 +73,27 @@ single service and groups can also be formed as per specified host's LEDs.
 This document proposes a new design for physical LED implementation.
 
    **Device Tree**
-      - Physical Leds are defined in the device tree under "leds" section.
-      - Corresponding GPIO pin are defined for the physical LEDs.
+
+    - Physical Leds are defined in the device tree under "leds" section.
+    - Corresponding GPIO pin are defined for the physical LEDs.
 
    **OpenBMC - meta-phosphor**
-      - "udev rules" are used to monitor the physical LEDs.
-      - Once the udev event is initialized for the LED, it will save those
-        LED name using the script in udev instead of triggering systemd service.
+
+    - "udev rules" are used to monitor the physical LEDs.
+    - Once the udev event is initialized for the LED, it will save those
+      LED name using the script in udev instead of triggering systemd service.
 
    **Phosphor-led-sysfs**
-      - Phosphor-led-sysfs will have a single systemd service
-        (xyz.openbmc_project.led.controller.service) running by default at
-        system startup.
-      - A dbus method call will be exposed from the service. udev will notify
-        notify the LEDs detected in the driver.
 
-   ### Example
+    - Phosphor-led-sysfs will have a single systemd service
+      (xyz.openbmc_project.led.controller.service) running by default at
+      system startup.
+    - A dbus method call will be exposed from the service. udev will notify
+      notify the LEDs detected in the driver.
+
+   **Example**
 
 ```
-
      busctl tree xyz.openbmc_project.LED.Controller
      `-/xyz
        `-/xyz/openbmc_project
@@ -102,7 +104,6 @@ This document proposes a new design for physical LED implementation.
                          ............
                          ............
              `-/xyz/openbmc_project/led/physical/ledN
-
 ```
 
 Following modules will be updated for this implementation
@@ -130,11 +131,11 @@ will be created for all the LEDs.
 **D-Bus Objects**
 
 ```
+   Service        xyz.openbmc_project.LED.Controller
 
-  - Service        xyz.openbmc_project.LED.Controller
-  - Object Path    /xyz/openbmc_project/led/physical/ledN
-  - Interface      xyz.openbmc_project.LED.Physical
+   Object Path    /xyz/openbmc_project/led/physical/ledN
 
+   Interface      xyz.openbmc_project.LED.Physical
 ```
 
 ## Impacts
