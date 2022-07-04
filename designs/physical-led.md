@@ -73,15 +73,14 @@ single service and groups can also be formed as per specified host's LEDs.
 This document proposes a new design for physical LED implementation.
 
    **Device Tree**
-
     - Physical Leds are defined in the device tree under "leds" section.
     - Corresponding GPIO pin are defined for the physical LEDs.
 
    **OpenBMC - meta-phosphor**
 
-    - "udev rules" are used to monitor the physical LEDs.
-    - Once the udev event is initialized for the LED, it will save those
-      LED name using the script in udev instead of triggering systemd service.
+     "udev rules" are used to monitor the physical LEDs.
+     Once the udev event is initialized for the LED, it will save those
+     LED name using the script in udev instead of triggering systemd service.
 
    **Phosphor-led-sysfs**
 
