@@ -12,11 +12,11 @@ Created: July 04, 2022
 
 In the existing phosphor-led-sysfs design, it exposes one service per LED
 configuration in device tree. Hence, multiple services will be created for
-multiple GPIO pins configured for LED.
+multiple GPIO pins configured for LEDs.
 
 There are cases where multiple LEDs were configured in the device tree for each
 host and needs to be paired as a group of LEDs for the specified host in the
-multi host configuration.
+multi host platform.
 
 Based on the current design, pairing groups will be difficult under multiple
 services. To abstract this method and also to create LEDs under a single
@@ -34,15 +34,15 @@ The below diagram represents the overview for proposed physical LED design.
    |            |------------>|          |              |                    |
    | GPIO PIN 1 |    Pin 2    |   UDEV   | Dbus Signals |  Method to handle  |
    |            |------------>|  Events  |------------->|     udev event     |
-   | GPIO PIN 2 |    .....    |          |              |                    |
-   |            |    .....    | (To Save |              +--------------------+
+   | GPIO PIN 2 |     ...     |          |              |                    |
+   |            |     ...     | (To Save |              +--------------------+
    | GPIO PIN 3 |    Pin N    |   LED    |                         |
    |            |------------>|  names)  |                         |
    | GPIO PIN 4 |             +----------+                         V
    |            |                                 +------------------------------+
-   |  .......   |                                 |                              |
-   |  .......   |      +------------------+       |  Service :                   |
-   |  .......   |      |                  |       |                              |
+   |   .....    |                                 |                              |
+   |   .....    |      +------------------+       |  Service :                   |
+   |   .....    |      |                  |       |                              |
    |            |      |  LED Controller  |       |  /xyz/openbmc_project/<led1> |
    | GPIO PIN N |      |     Service      |       |  /xyz/openbmc_project/<led2> |
    |            |      |      (xyz.       |------>|  /xyz/openbmc_project/<led3> |
@@ -59,14 +59,9 @@ single service and groups can also be formed as per specified host's LEDs.
 
 ## Requirements
 
- - Read postcode from all servers.
- - Display the host postcode to the 7 segment display based on host position
-   selection.
- - Provide a command interface for user to see any server(multi-host) current
-   postcode.
- - Provide a command interface for user to see any server(multi-host) postcode
-   history.
- - Support for hot-plug-able host.
+ - Udev rules to receive LED events.
+ - Support for Dbus signal to send LED events to phosphor-led-sysfs method.
+ - Provide a single systemd service for phosphor-led-sysfs application.
 
 ## Proposed Design
 
@@ -76,19 +71,19 @@ This document proposes a new design for physical LED implementation.
 
  - Corresponding GPIO pin are defined for the physical LEDs.
 
- - "udev rules" are used to monitor the physical LEDs.
-
- - Once the udev event is initialized for the LED, it will save those LED
-   name using the script in udev instead of triggering systemd service.
-
  - Phosphor-led-sysfs will have a single systemd service
    (xyz.openbmc_project.led.controller.service) running by default at
    system startup.
 
- - A dbus method call will be exposed from the service. udev will notify
-   notify the LEDs detected in the driver.
+ - "udev rules" are handled to monitor the physical LEDs events.
 
-   **Example**
+ - Once the udev event is initialized for the LED, it will send those LED name
+   using the dbus signal in udev instead of triggering systemd service.
+
+ - A dbus method call will be exposed from the service. udev will notify the
+   LEDs detected in the driver to the method call in phosphor-led-sysfs. 
+
+**Example**
 
 ```
      busctl tree xyz.openbmc_project.LED.Controller
@@ -105,25 +100,26 @@ This document proposes a new design for physical LED implementation.
 
 Following modules will be updated for this implementation
 
- - Phosphor-led-sysfs
  - OpenBMC - meta-phosphor
+ - Phosphor-led-sysfs
 
 ## OpenBMC - meta-phosphor
 
-udev rules is created for physical LED and it will be initiated when the
-LED GPIO pins are configured in device tree.
+udev rules is created for physical LEDs and udev events will be created when
+the LED GPIO pins are configured in the device tree.
 
-udev rules will receive the LED names which are configured in the device tree
-as arguments and save those names whenever udev events is created.
+udev events will receive the LED names which are configured in the device tree
+as arguments and send those names to a method in phosphor-led-sysfs using dbus
+signal, whenever udev events is created.
 
 ## Phosphor-led-sysfs
 
 Phosphor-led-sysfs will have a single systemd service which will be started
 running at the system startup. Once the application started, it will invoke a
-method to handle the udev events which are received from device tree.
+method to handle the LED udev events which are received.
 
-Based on the udev events, all the LEDs name will be retrieved and dbus path
-will be created for all the LEDs.
+Based on the LED udev events, all the LEDs name will be retrieved and dbus path
+will be created for all the LEDs under single systemd service.
 
 **D-Bus Objects**
 
@@ -137,9 +133,10 @@ will be created for all the LEDs.
 
 ## Impacts
 
-These changes are under phosphor-led-sysfs design, it will not affect the
-single host physical LED design.
+These changes are under phosphor-led-sysfs design and this diplays all the
+physical LED dbus path under single systemd service instead of multiple
+services. This will not impact the single host physical LED design.
 
 ## Testing
-The proposed design can be tested in a platform in which both single and
-multiple hosts are connected.
+
+The proposed design can be tested in both single and multiple hosts platform.
