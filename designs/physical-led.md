@@ -81,7 +81,7 @@ This document proposes a new design for physical LED implementation.
    using the dbus signal in udev instead of triggering systemd service.
 
  - A dbus method call will be exposed from the service. udev will notify the
-   LEDs detected in the driver to the method call in phosphor-led-sysfs. 
+   LEDs detected in the driver to the method call in phosphor-led-sysfs daemon.
 
 **Example**
 
@@ -98,7 +98,7 @@ This document proposes a new design for physical LED implementation.
              `-/xyz/openbmc_project/led/physical/ledN
 ```
 
-Following modules will be updated for this implementation
+Following modules will be updated for this implementation.
 
  - OpenBMC - meta-phosphor
  - Phosphor-led-sysfs
@@ -109,8 +109,8 @@ udev rules is created for physical LEDs and udev events will be created when
 the LED GPIO pins are configured in the device tree.
 
 udev events will receive the LED names which are configured in the device tree
-as arguments and send those names to a method in phosphor-led-sysfs using dbus
-signal, whenever udev events is created.
+as arguments and send those names to a method in phosphor-led-sysfs application
+using dbus signal, whenever udev events is created.
 
 ## Phosphor-led-sysfs
 
