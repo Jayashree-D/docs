@@ -1,4 +1,4 @@
-# Physical LED Design Support
+# Physical LED Design Support`
 
 Author: 
   Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
@@ -10,19 +10,102 @@ Created: July 04, 2022
 
 ## Problem Description
 
-In the existing phosphor-led-sysfs design, it exposes one service per LED
-configuration in device tree. Hence, multiple services will be created for
-multiple GPIO pins configured for LEDs.
+The existing phosphor-led-sysfs design exposes one service per LED configuration
+in device tree. Hence, multiple services will be created for multiple GPIO pins
+configured for LEDs.
 
 There are cases where multiple LEDs were configured in the device tree for each
 host and needs to be paired as a group of LEDs for the specified host in the
 multi host platform.
 
-Based on the current design, pairing groups will be difficult under multiple
-services. To abstract this method and also to create LEDs under a single
-service, a new implementation is proposed.
+For example, Power LED and System Identification LED combines into a single
+bicolor blue-yellow LED per host. A total of 4 × LEDs will be placed along
+the front edge of the board in a grid. The grid will be 2 × rows of 2 × LEDs
+to match the layout of the card slots.
+
+Depends on the each host status, blue or yellow LED needs to be blink, OFF or
+ON and other LED needs to be in OFF state. Therefore, bi-color led needs to
+be paired as a group and exposed in the userspace.
+
+Based on the current design in phopshor-led-sysfs application, pairing groups
+will be difficult, since it exposes one service per LED. To abstract this
+method and also to create LEDs under a single service, a new design is
+proposed.
 
 ## Background and References
+
+The below diagram represents the overview for current physical LED design.
+
+```
+
+
+    DEVICE TREE                  BMC                PHOSPHOR-LED-SYSFS SERVICE
+
+   +------------+   Pin 1   +----------+  LED 1  +-----------------------------+
+   |            |---------->|          |-------->|                             |
+   | GPIO PIN 1 |   Pin 2   |          |  LED 2  | Service 1 :                 |
+   |            |---------->|   UDEV   |-------->|   xyz.openbmc_project.      |
+   | GPIO PIN 2 |   .....   |  Events  |  ....   |        Led.Controller.LED1  |
+   |            |   .....   |          |  ....   | Service 2 :                 |
+   | GPIO PIN 3 |   Pin N   |          |  LED N  |   xyz.openbmc_project.      |
+   |            |---------->|          |-------->|        Led.Controller.LED2  |
+   | GPIO PIN 4 |           +----------+         |          .......            |
+   |            |                                |          .......            |
+   |  .......   |                                | Service N :                 |
+   |  .......   |                                |   xyz.openbmc_project.      |
+   |  .......   |                                |        Led.Controller.LEDN  |
+   |            |                                +-----------------------------+
+   | GPIO PIN N |                                            |
+   |            |                                            |
+   +------------+                                            V                                                             
+                                            +----------------------------------+
+                                            |                                  |
+                                            | Service 1 :                      |
+                                            |    /xyz/openbmc_project/<led1>   |
+                                            |                                  |
+                                            | Service 2 :                      |
+                                            |    /xyz/openbmc_project/<led2>   |
+                                            |          .......                 |
+                                            |          .......                 |
+                                            |                                  |
+                                            | Service N :                      |
+                                            |    /xyz/openbmc_project/<ledN>   |
+                                            |                                  |
+                                            +----------------------------------+
+
+                                                 PHOSPHSOR-LED-SYSFS DAEMON
+```
+
+The existing design uses sysfs entry as udev events for particular LED and
+triggers the necessary action to generate the dbus object path and interface
+for that specified service. It exposes one service per LED.
+
+**Example**
+
+```
+     busctl tree xyz.openbmc_project.LED.Controller.led1
+     `-/xyz
+       `-/xyz/openbmc_project
+         `-/xyz/openbmc_project/led
+           `-/xyz/openbmc_project/led/physical
+             `-/xyz/openbmc_project/led/physical/led1
+
+     busctl tree xyz.openbmc_project.LED.Controller.led2
+     `-/xyz
+       `-/xyz/openbmc_project
+         `-/xyz/openbmc_project/led
+           `-/xyz/openbmc_project/led/physical
+             `-/xyz/openbmc_project/led/physical/led2
+
+```
+
+## Requirements
+
+ - Udev rules to receive LED events.
+ - Support for Dbus signal to send LED events to phosphor-led-sysfs method.
+ - Provide a single systemd service for phosphor-led-sysfs application.
+
+## Proposed Design
 
 The below diagram represents the overview for proposed physical LED design.
 
@@ -57,14 +140,6 @@ The below diagram represents the overview for proposed physical LED design.
 Since LEDS cannot pair a group under multiple services, so it is modified to
 single service and groups can also be formed as per specified host's LEDs.
 
-## Requirements
-
- - Udev rules to receive LED events.
- - Support for Dbus signal to send LED events to phosphor-led-sysfs method.
- - Provide a single systemd service for phosphor-led-sysfs application.
-
-## Proposed Design
-
 This document proposes a new design for physical LED implementation.
 
  - Physical Leds are defined in the device tree under "leds" section.
@@ -77,11 +152,11 @@ This document proposes a new design for physical LED implementation.
 
  - "udev rules" are handled to monitor the physical LEDs events.
 
- - Once the udev event is initialized for the LED, it will send those LED name
-   using the dbus signal in udev instead of triggering systemd service.
+ - Once the udev event is initialized for the LED, it will save those LED name
+   in a file using the script instead of triggering systemd service.
 
- - A dbus method call will be exposed from the service. udev will notify the
-   LEDs detected in the driver to the method call in phosphor-led-sysfs daemon.
+ - Phosphor-led-dydfs daemon will read the LED names from the file and create a
+   dbus path and interface under single systemd service.
 
 **Example**
 
@@ -109,17 +184,16 @@ udev rules is created for physical LEDs and udev events will be created when
 the LED GPIO pins are configured in the device tree.
 
 udev events will receive the LED names which are configured in the device tree
-as arguments and send those names to a method in phosphor-led-sysfs application
-using dbus signal, whenever udev events is created.
+as arguments and save those names to a file using script.
 
 ## Phosphor-led-sysfs
 
 Phosphor-led-sysfs will have a single systemd service which will be started
 running at the system startup. Once the application started, it will invoke a
-method to handle the LED udev events which are received.
+method to handle the LED udev events which are retrieved from a file.
 
-Based on the LED udev events, all the LEDs name will be retrieved and dbus path
-will be created for all the LEDs under single systemd service.
+Based on the file, all the LEDs name will be retrieved and dbus path will be
+created for all the LEDs under single systemd service.
 
 **D-Bus Objects**
 
