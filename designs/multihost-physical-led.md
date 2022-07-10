@@ -1,6 +1,6 @@
 # Physical LED Design Support
 
-Author: 
+Author:
   Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
   Jayashree D, [jayashree-d@hcl](mailto:jayashree-d@hcl.com)
 
@@ -156,7 +156,7 @@ This document proposes a new design for physical LED implementation.
  - Once the udev event is initialized for the LED, it will save those LED name
    in a file using the script instead of triggering systemd service.
 
- - Phosphor-led-dydfs daemon will read the LED names from the file and create a
+ - Phosphor-led-sysfs daemon will read the LED names from the file and create a
    dbus path and interface under single systemd service.
 
 **Example**
