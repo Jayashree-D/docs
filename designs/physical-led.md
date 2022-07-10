@@ -1,4 +1,4 @@
-# Physical LED Design Support`
+# Physical LED Design Support
 
 Author: 
   Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
