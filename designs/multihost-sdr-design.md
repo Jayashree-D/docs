@@ -1,12 +1,12 @@
 # IPMB based SDR Design
 
 Author:
-  Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
   Jayashree D, [jayashree-d@hcl](mailto:jayashree-d@hcl.com)
+  Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
 
 Other contributors: None
 
-Created: July 10, 2022
+Created: July 12, 2022
 
 ## Problem Description
 
@@ -17,9 +17,25 @@ A data records that contain information about the type and the number of sensors
 in the platform, sensor threshold support, event generation capabilities and
 information on what type of readings the sensor provides.
 
+The primary purpose of Sensor Data Records is to describe the sensor configuration
+of the platform management subsystem to system software.
+
+Sensor Data Records also include records describing the number and type of devices
+that are connected to the system’s IPMB, records that describe the location and
+type of FRU Devices (devices that contain field replaceable unit information).
+
 The current version of OpenBMC does not have support for SDR design. This design
-will provide the support on how SDR information in each host is received using
-IPMB support.
+will provide the support on how SDR information in each IPMB device is received
+using IPMB support.
+
+## Background and References
+
+This design is completely based on the IPMI (Intelligent Platform Management
+Interface) Specification Second Generation v2.0.
+
+Entity manager supports SDR sensor statically by configuring the sensor details
+in json file. This implementation supports SDR dynamically by detecting the
+number of IPMB FRU present.
 
 ## Requirements
 
@@ -33,32 +49,32 @@ The below diagram represents the overview for proposed SDR Design.
 ```
 
       ENTITY-MANAGER               DBUS-SENSORS
-
+                                   (IpmbSensor)
 
                                +------------------+
-                               | +--------------+ |  IPMB 1  +--------+
-                               | | Identify SDR | |--------->| Host 1 |
-   +------------------+        | | Record Count | |          +--------+
+                               | +--------------+ |  IPMB 1  +---------------+
+                               | | Identify SDR | |--------->| IPMB Device 1 |
+   +------------------+        | | Record Count | |          +---------------+
    |                  |        | +--------------+ |
-   |   Configuration  |        |                  |  IPMB 2  +--------+
-   |      file to     |        | +--------------+ |--------->| Host 2 |
-   |   identify the   |------->| | Reserve SDR  | |          +--------+
+   |   Configuration  |        |                  |  IPMB 2  +---------------+
+   |      file to     |        | +--------------+ |--------->| IPMB Device 2 |
+   |   identify the   |------->| | Reserve SDR  | |          +---------------+
    |     number of    |        | | Repository   | |             ....
    |   IPMB Devices   |        | +--------------+ |             ....
-   |                  |        |                  |             .... 
-   +------------------+        | +--------------+ |  IPMB N  +--------+
-                               | | Get SDR Data | |--------->| Host N |
-                               | +--------------+ |          +--------+
+   |                  |        |                  |             ....
+   +------------------+        | +--------------+ |  IPMB N  +---------------+
+                               | | Get SDR Data | |--------->| IPMB Device N |
+                               | +--------------+ |          +---------------+
                                +------------------+
 
 ```
 
-This document proposes a design for multi-host SDR implementation.
+This document proposes a design for IPMB based SDR implementation.
 
  - Need to create a configuration file to detect the number of IPMB Devices.
 
  - Once the IPMB Device is detected, SDR Repository information and the record
-   count of the sensor will be identified for each host using IPMB SendRequest.
+   count of the sensor will be identified for each IPMB devices.
 
  - Reservation ID for SDR sensor will also be received after the record count
    using IPMB support.
@@ -128,7 +144,7 @@ created under entity-manager service.
 
 After the interface is created for IPMBDevice in entity-manager, dbus-signal
 will be notified to IpmbSensor. For each config, based on the bus index for
-each host, SDR Repository information will be received using IPMB.
+each IPMB device, SDR Repository information will be received using IPMB.
 
 This information will provide the number of SDR records and SDR Reservation ID
 will be received using IPMB support. Then, data packet will be framed based on
@@ -141,3 +157,6 @@ displayed in dbus path under IpmbSensor service.
 
 This design does not have any impacts on the existing changes as the code is
 implemented based on the IPMB Devices detected in entity-manager.
+
+## Testing
+The proposed design is tested in a IPMB based Twinlake platform.
