@@ -23,8 +23,8 @@ bicolor blue-yellow LED per host. A total of 4 × LEDs will be placed along
 the front edge of the board in a grid. The grid will be 2 × rows of 2 × LEDs
 to match the layout of the card slots.
 
-Depends on the each host status, blue or yellow LED needs to be blink, OFF or
-ON and other LED needs to be in OFF state. Therefore, bi-color led needs to
+Depending on the status of each host, blue or yellow LED needs to be blink, OFF
+or ON and other LEDs needs to be in OFF state. Therefore, bi-color led needs to
 be paired as a group and exposed in the userspace.
 
 Based on the current design in phopshor-led-sysfs application, pairing groups
@@ -153,8 +153,8 @@ This document proposes a new design for physical LED implementation.
 
  - "udev rules" are handled to monitor the physical LEDs events.
 
- - Once the udev event is initialized for the LED, it will save those LED name
-   in a file using the script instead of triggering systemd service.
+ - Once the udev event is initialized for the LED, it will save those LED names
+   in a file using the script instead of triggering the systemd service.
 
  - Phosphor-led-sysfs daemon will read the LED names from the file and create a
    dbus path and interface under single systemd service.
@@ -208,10 +208,14 @@ created for all the LEDs under single systemd service.
 
 ## Impacts
 
-These changes are under phosphor-led-sysfs design and this diplays all the
+These changes are under phosphor-led-sysfs design and this displays all the
 physical LED dbus path under single systemd service instead of multiple
-services. This will not impact the single host physical LED design.
+services.
+
+**Note**
+This will not impact the single host physical LED design, since this only
+combines the LEDs dbus path under single service.
 
 ## Testing
 
-The proposed design can be tested in both single and multiple hosts platform.
+The proposed design will be tested in both single and multiple hosts platform.
