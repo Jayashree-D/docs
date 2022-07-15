@@ -156,8 +156,10 @@ This document proposes a new design for physical LED implementation.
  - Once the udev event is initialized for the LED, it will save those LED names
    in a file using the script instead of triggering the systemd service.
 
- - Phosphor-led-sysfs daemon will read the LED names from the file and create a
-   dbus path and interface under single systemd service.
+ - Monitor the file using inotify to handle the changes.
+
+ - Phosphor-led-sysfs daemon will create dbus object path and interface under
+   single systemd service.
 
 **Example**
 
@@ -193,8 +195,9 @@ Phosphor-led-sysfs will have a single systemd service which will be started
 running at the system startup. Once the application started, it will invoke a
 method to handle the LED udev events which will be retrieved from a file.
 
-By reading the file, all the LEDs name will be retrieved and dbus path will be
-created for all the LEDs under single systemd service.
+File will be monitored using inotify to handle the events which are added or
+removed. By reading the file, all the LEDs name will be retrieved and dbus
+path will be created for all the LEDs under single systemd service.
 
 **D-Bus Objects**
 
