@@ -86,10 +86,50 @@ This document proposes a design for IPMB based SDR implementation.
  - After all the information is read, sensor details will be displayed in the
    dbus path under IpmbSensor service.
 
-**Example**
+
+Following modules will be updated for this implementation.
+
+ - Entity-Manager
+ - Dbus-Sensors
+
+## Entity-Manager
+
+A configuration file is created with the information required to implement the
+code in dbus-sensors daemon. **Bus** will represent the IPMB channel in which
+SDR information will be read. Other parameters like *Name, Class, Address, Type*
+represents the basic information for SDR.
+
+***Example Configuration***
 
 ```
-ENTITY-MANAGER :
+        {
+            "Address": "xxx",
+            "Bus": "$bus",
+            "Class": "IpmbDevice",
+            "PowerState": "Always",
+            "Name": "$bus + 1 IpmbDevice",
+            "Type": "IPMBDevice"
+        }
+```
+
+This configuration will probe the IPMB FRU interface. IPMB FRU will provide
+the FRU information for each IPMB devices. If the IPMB FRU interface
+(xyz.openbmc_project.Ipmb.FruDevice) is detected, then SDR config will be
+created for each IPMB device.
+
+```
+  "Probe": "xyz.openbmc_project.Ipmb.FruDevice({'PRODUCT_PRODUCT_NAME': 'Twin Lake '})"
+```
+
+Based on the number of IPMB devices detected, dbus path and interface for SDR
+configuration will be displayed under entity-manager.
+
+```
+   Service        xyz.openbmc_project.EntityManager
+
+   Interface      xyz.openbmc_project.Configuration.IpmbDevice
+
+   Object Path
 
      busctl tree xyz.openbmc_project.EntityManager
      `-/xyz
@@ -105,8 +145,37 @@ ENTITY-MANAGER :
               |-/xyz/openbmc_project/inventory/system/board/<ProbeName>
               | |-/xyz/openbmc_project/inventory/system/board/<ProbeName>/N_IpmbDevice
 
-DBUS-SENSORS :
+```
 
+## Dbus-Sensors
+
+***IpmbSensor***
+
+After the interface is created for IPMBDevice in entity-manager, dbus-signal
+will be notified to IpmbSensor. For each config, based on the bus number for
+each IPMB device, SDR Repository information will be received using IPMB.
+
+This information will provide the number of SDR records and SDR Reservation ID
+will be received using IPMB support. Then, data packet will be framed based on
+reservation ID to get the full information of each sensor using IPMB.
+
+Once all the sensor information like sensor name, sensor type, sensor unit,
+threshold values and sensor unique number are read, each data will be
+processed and stored in a map for each IPMB device.
+
+For each interface (xyz.openbmc_project.Configuration.IpmbDevice) detected for
+IPMB device, all the sensors related to that IPMB device will be accessed from
+the map which are stored. Each sensor's name, device address, threshold values
+and unit are updated and displayed one at a time by invoking IpmbSensor
+constructor under IpmbSensor service.
+
+Added a new IpmbType for SDR sensor to frame the data packet for each sensor
+based on the sensor's unique number received. Sensor value will be read based
+on the pollng rate and it will be updated in dbus property.
+
+**Example**
+
+```
      busctl tree xyz.openbmc_project.IpmbSensor
      `-/xyz
        `-/xyz/openbmc_project
@@ -126,32 +195,6 @@ DBUS-SENSORS :
            `-/xyz/openbmc_project/sensors/voltage
              `-/xyz/openbmc_project/sensors/voltage/sensor1
 ```
-
-Following modules will be updated for this implementation.
-
- - Entity-Manager
- - Dbus-Sensors
-
-## Entity-Manager
-
-A configuration file is created to probe the IPMB FRU devices to detect the
-number of the IPMB support present and dbus object path & interface is
-created under entity-manager service.
-
-## Dbus-Sensors
-
-**IpmbSensor**
-
-After the interface is created for IPMBDevice in entity-manager, dbus-signal
-will be notified to IpmbSensor. For each config, based on the bus index for
-each IPMB device, SDR Repository information will be received using IPMB.
-
-This information will provide the number of SDR records and SDR Reservation ID
-will be received using IPMB support. Then, data packet will be framed based on
-reservation ID to get the full information of each sensor using IPMB.
-
-Once all the sensor information is read, each data will be processed and
-displayed in dbus path under IpmbSensor service.
 
 ## Impacts
 
