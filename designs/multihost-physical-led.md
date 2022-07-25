@@ -1,8 +1,8 @@
 # Physical LED Design Support
 
 Author:
-  Velumani T,  [velumanit@hcl](mailto:velumanit@hcl.com)
-  Jayashree D, [jayashree-d@hcl](mailto:jayashree-d@hcl.com)
+  Velumani T (Velu),  [velumanit@hcl](mailto:velumanit@hcl.com)
+  Jayashree D (Jayashree), [jayashree-d@hcl](mailto:jayashree-d@hcl.com)
 
 Other contributors: None
 
@@ -101,9 +101,8 @@ for that specified service. It exposes one service per LED.
 
 ## Requirements
 
- - Udev rules to receive LED events.
- - Support for script to save LED events in a file.
- - Read the udev events from the file in phosphor-led-sysfs daemon.
+ - Entity manager configuration to support the number of LEDs.
+
  - Provide a single systemd service for phosphor-led-sysfs application.
 
 ## Proposed Design
@@ -112,17 +111,17 @@ The below diagram represents the overview for proposed physical LED design.
 
 ```
 
-    DEVICE TREE                  BMC                     PHOSPHOR-LED-SYSFS
+    DEVICE TREE          ENTITY-MANAGER                 PHOSPHOR-LED-SYSFS
 
-   +------------+    Pin 1    +----------+              +--------------------+
-   |            |------------>|          |              |                    |
-   | GPIO PIN 1 |    Pin 2    |   UDEV   |              |  Method to handle  |
-   |            |------------>|  Events  |------------->|     udev event     |
-   | GPIO PIN 2 |     ...     |          |              |                    |
-   |            |     ...     | (To Save |              +--------------------+
-   | GPIO PIN 3 |    Pin N    |   LED    |                         |
-   |            |------------>|  names)  |                         |
-   | GPIO PIN 4 |             +----------+                         V
+   +------------+      +---------------+              +--------------------+
+   |            |      |               |              |                    |
+   | GPIO PIN 1 |      | Configuration |              | Method to retrieve |
+   |            |      |   file to     |------------->|   LED from entity  |
+   | GPIO PIN 2 |      |   identify    |              |                    |
+   |            |      |   the LEDs    |              +--------------------+
+   | GPIO PIN 3 |      |               |                         |
+   |            |      +---------------+                         |
+   | GPIO PIN 4 |                                                V
    |            |                                 +------------------------------+
    |   .....    |                                 |                              |
    |   .....    |      +------------------+       |  Service :                   |
@@ -138,32 +137,40 @@ The below diagram represents the overview for proposed physical LED design.
 
 ```
 
-Since LEDS cannot pair a group under multiple services, so it is modified to
-single service and groups can also be formed as per specified host's LEDs.
+Following modules will be updated for this implementation.
+
+ - Entity Manager
+
+ - Phosphor-led-sysfs
 
 This document proposes a new design for physical LED implementation.
 
- - Physical Leds are defined in the device tree under "leds" section.
+ - Physical Leds are defined in the device tree under "leds" section and
+   corresponding GPIO pins are configured.
 
- - Corresponding GPIO pin are defined for the physical LEDs.
+ - In entity-manager, a configuration related to LEDs are defined in json file
+   by probing the Baseboard FRU information.
 
  - Phosphor-led-sysfs will have a single systemd service
    (xyz.openbmc_project.led.controller.service) running by default at
    system startup.
 
- - "udev rules" are handled to monitor the physical LEDs events.
+ - Dbus objects configured in entity for LEDs are retrieved and map the names
+   of LEDs in sys path created which is based on device tree configuration.
+   Then, dbus object path and interface for LEDs are created under single
+   systemd service.
 
- - Once the udev event is initialized for the LED, it will save those LED names
-   in a file using the script instead of triggering the systemd service.
 
- - Monitor the file using inotify to handle the changes.
-
- - Phosphor-led-sysfs daemon will create dbus object path and interface under
-   single systemd service.
-
-**Example**
+***Example***
 
 ```
+
+   SERVICE        xyz.openbmc_project.LED.Controller
+
+   INTERFACE      xyz.openbmc_project.LED.Physical
+
+   OBJECT PATH
+
      busctl tree xyz.openbmc_project.LED.Controller
      `-/xyz
        `-/xyz/openbmc_project
@@ -176,48 +183,33 @@ This document proposes a new design for physical LED implementation.
              `-/xyz/openbmc_project/led/physical/ledN
 ```
 
-Following modules will be updated for this implementation.
+## Alternatives Considered
 
- - OpenBMC - meta-phosphor
- - Phosphor-led-sysfs
+**First Approach**
 
-## OpenBMC - meta-phosphor
+"udev rules" are handled to monitor the physical LEDs events. Once the udev
+event is initialized for the LED, a dbus call from udev needs to be sent to
+phosphor-led-sysfs daemon to create dbus path and interface under single
+systemd service. This limits the dbus call from udev rules to dameon.
 
-udev rules is created for physical LEDs and udev events will be created when
-the LED GPIO pins are configured in the device tree.
+**Second Approach**
 
-udev events will receive the LED names which are configured in the device tree
-as arguments and save those names to a file using script.
-
-## Phosphor-led-sysfs
-
-Phosphor-led-sysfs will have a single systemd service which will be started
-running at the system startup. Once the application started, it will invoke a
-method to handle the LED udev events which will be retrieved from a file.
-
-File will be monitored using inotify to handle the events which are added or
-removed. By reading the file, all the LEDs name will be retrieved and dbus
-path will be created for all the LEDs under single systemd service.
-
-**D-Bus Objects**
-
-```
-   Service        xyz.openbmc_project.LED.Controller
-
-   Object Path    /xyz/openbmc_project/led/physical/ledN
-
-   Interface      xyz.openbmc_project.LED.Physical
-```
+When the udev event is initialized for the LED, it will save those LED names in
+a file using the script. Phosphor-led-sysfs will monitor the file using inotify
+to handle the changes. By reading the file, all the LEDs name will be retrieved
+and dbus path will be created for all the LEDs under single systemd service.
+This approach will not be scalable, since the file needs to be monitored
+continuously.
 
 ## Impacts
 
-These changes are under phosphor-led-sysfs design and this displays all the
-physical LED dbus path under single systemd service instead of multiple
-services.
+These changes impacts the physical LEDs where it exposes one service per LED.
+The systemd service name should be changed as ***xyz.openbmc_project.LED.Controller***
+wherever multiple services are configured in the code for testing.
 
-**Note**
-This will not impact the single host physical LED design, since this only
-combines the LEDs dbus path under single service.
+Entity Manager configuration needs to be created for the physical LEDs which
+are previously created in other platforms based on udev rules to map the new
+implementation.
 
 ## Testing
 
