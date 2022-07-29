@@ -29,7 +29,7 @@ be paired as a group and exposed in the userspace.
 
 Based on the current design in phopshor-led-sysfs application, pairing groups
 will be difficult, since it exposes one service per LED. To abstract this
-method and also to create LEDs under a single service, a new design is
+method and also to create LEDs under a single service, a new application is
 proposed.
 
 ## Background and References
@@ -101,9 +101,13 @@ for that specified service. It exposes one service per LED.
 
 ## Requirements
 
- - Entity manager configuration to support the number of LEDs.
+ - GPIO pins for LEDs needs to be configured in the device tree.
 
- - Provide a single systemd service for phosphor-led-sysfs application.
+ - To support the number of LEDs on a specific board, an entity-manager
+   configuration file must be developed. In order to create a dbus object in
+   the phosphor-led-sysfs daemon, this will confirm the hardware presence of
+   the LEDs listed in /sys/class/leds.
+
 
 ## Proposed Design
 
@@ -113,28 +117,28 @@ The below diagram represents the overview for proposed physical LED design.
 
     DEVICE TREE          ENTITY-MANAGER                 PHOSPHOR-LED-SYSFS
 
-   +------------+      +---------------+              +--------------------+
-   |            |      |               |              |                    |
-   | GPIO PIN 1 |      | Configuration |              | Method to retrieve |
-   |            |      |   file to     |------------->|   LED from entity  |
-   | GPIO PIN 2 |      |   identify    |              |                    |
-   |            |      |   the LEDs    |              +--------------------+
-   | GPIO PIN 3 |      |               |                         |
-   |            |      +---------------+                         |
-   | GPIO PIN 4 |                                                V
-   |            |                                 +------------------------------+
-   |   .....    |                                 |                              |
-   |   .....    |      +------------------+       |  Service :                   |
-   |   .....    |      |                  |       |                              |
-   |            |      |  LED Controller  |       |  /xyz/openbmc_project/<led1> |
-   | GPIO PIN N |      |     Service      |       |  /xyz/openbmc_project/<led2> |
-   |            |      |      (xyz.       |------>|  /xyz/openbmc_project/<led3> |
-   +------------+      |  openbmc_project.|       |         ........             |
-                       |  LED.Controller) |       |         ........             |
-                       |                  |       |  /xyz/openbmc_project/<ledN> |
-                       +------------------+       |                              |
-                                                  +------------------------------+
-
+   +------------+                              +-----------------------------------+
+   |            |                              |    +-------------------------+    |
+   | GPIO PIN 1 |                              |    | LED Controller Service  |    |
+   |            |                              |    |  (xyz.openbmc_project.  |    |
+   | GPIO PIN 2 |      +---------------+       |    |     LED.Controller)     |    |
+   |            |      |               |       |    +-------------------------+    |
+   | GPIO PIN 3 |      | Configuration |       |                 |                 |
+   |            |      |    file to    |       |                 |                 |
+   | GPIO PIN 4 |      |  support the  |------>|                 V                 |
+   |            |      |   LEDs on a   |       |  +-----------------------------+  |
+   |   .....    |      |  given board  |       |  |                             |  |
+   |   .....    |      |               |       |  | Service :                   |  |
+   |   .....    |      +---------------+       |  |                             |  |
+   |            |                              |  | /xyz/openbmc_project/<led1> |  |
+   | GPIO PIN N |                              |  | /xyz/openbmc_project/<led2> |  |
+   |            |                              |  | /xyz/openbmc_project/<led3> |  |
+   +------------+                              |  |        ........             |  |
+                                               |  |        ........             |  |
+                                               |  | /xyz/openbmc_project/<ledN> |  |
+                                               |  |                             |  |
+                                               |  +-----------------------------+  |
+                                               +-----------------------------------+
 ```
 
 Following modules will be updated for this implementation.
@@ -148,17 +152,19 @@ This document proposes a new design for physical LED implementation.
  - Physical Leds are defined in the device tree under "leds" section and
    corresponding GPIO pins are configured.
 
- - In entity-manager, a configuration related to LEDs are defined in json file
-   by probing the Baseboard FRU information.
-
  - Phosphor-led-sysfs will have a single systemd service
    (xyz.openbmc_project.led.controller.service) running by default at
    system startup.
 
- - Dbus objects configured in entity for LEDs are retrieved and map the names
-   of LEDs in sys path created which is based on device tree configuration.
-   Then, dbus object path and interface for LEDs are created under single
-   systemd service.
+ - Based on the board's configuration file, entity-manager exposes the LED
+   information for a specific board available in dbus objects. The
+   phosphor-led-sysfs application retrieves the dbus objects for LEDs from an
+   entity manager.
+
+ - Map the LED names of the entity dbus objects with the path/sys/class/leds
+   created in the hardware based on the device tree configuration. Next, the
+   dbus object path and the LED interface are created under the single systemd
+   service (xyz.openbmc_project.LED.Controller).
 
 
 ***Example***
@@ -189,17 +195,33 @@ This document proposes a new design for physical LED implementation.
 
 "udev rules" are handled to monitor the physical LEDs events. Once the udev
 event is initialized for the LED, a dbus call from udev needs to be sent to
-phosphor-led-sysfs daemon to create dbus path and interface under single
-systemd service. This limits the dbus call from udev rules to dameon.
+the phosphor-led-sysfs daemon to create the dbus path and interface under a
+single systemd service.
+
+udev events will be generated based on the kernel configuration. For each LED,
+it will generate events and those udev events can be generated before systemd
+service, therefore, dbus call may not be supported from udev rules.
+
+So, dbus objects from entity manager is used to establish the communication
+between LEDs and the application. The association will be created for LEDs
+based on the inventory objects for the given board.
 
 **Second Approach**
 
 When the udev event is initialized for the LED, it will save those LED names in
-a file using the script. Phosphor-led-sysfs will monitor the file using inotify
-to handle the changes. By reading the file, all the LEDs name will be retrieved
-and dbus path will be created for all the LEDs under single systemd service.
-This approach will not be scalable, since the file needs to be monitored
-continuously.
+a file utilizing the script. Phosphor-led-sysfs will monitor the file using
+inotify to handle the changes. By reading the file, all the LEDs name will be
+retrieved and dbus path will be created for all the LEDs under single systemd
+service.
+
+inotify will monitor the file continuously and it needs to communicate between
+udev events and phosphor-led-sysfs application. Since, udev events can be
+generated before systemd service, inotify does not need to monitor the file
+afterwards and also it is not a well used mechanism to communicate.
+
+Dbus objects from entity manager is a better way to communicate with the
+application after the system startup and also inventory objects can also be
+created for LEDs.
 
 ## Impacts
 
@@ -213,4 +235,13 @@ implementation.
 
 ## Testing
 
-The proposed design will be tested in both single and multiple hosts platform.
+The proposed design is tested in a multiple hosts platform.
+
+***Manual Test***  - The physical LEDs status will be tested using busctl
+                     commands in the hardware.
+
+***Robot Test***   - The physical LEDs will be tested under robotframework
+                     using REST API in the system LEDs suite.
+
+***Unit Test***    - The proposed code can be covered by the unit tests which
+                     are already present.
