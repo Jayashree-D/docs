@@ -152,16 +152,38 @@ This document proposes a new design for physical LED implementation.
  - Physical Leds are defined in the device tree under "leds" section and
    corresponding GPIO pins are configured.
 
+```
+        leds {
+                compatible = "gpio-leds";
+
+                ledName {
+                        label = "devicename:color:function";
+                        gpios = <&gpio ASPEED_GPIO(M, 0) GPIO_ACTIVE_HIGH>;
+                };
+        };
+```
+
+ - Based on the board's configuration file, entity-manager exposes the LED
+   information for a specific board available in dbus objects. ***Class, Name,
+   Name1*** represents the label mentioned in device tree configuration. The
+   phosphor-led-sysfs application retrieves the dbus objects for LEDs from an
+   entity manager.
+
+```
+        {
+            "Class": "devicename",
+            "Name": "function",
+            "Name1": "color",
+            "Type": "SysfsLed"
+        }
+
+```
+
  - Phosphor-led-sysfs will have a single systemd service
    (xyz.openbmc_project.led.controller.service) running by default at
    system startup.
 
- - Based on the board's configuration file, entity-manager exposes the LED
-   information for a specific board available in dbus objects. The
-   phosphor-led-sysfs application retrieves the dbus objects for LEDs from an
-   entity manager.
-
- - Map the LED names of the entity dbus objects with the path/sys/class/leds
+ - Map the LED names of the entity dbus objects with the path /sys/class/leds
    created in the hardware based on the device tree configuration. Next, the
    dbus object path and the LED interface are created under the single systemd
    service (xyz.openbmc_project.LED.Controller).
@@ -225,13 +247,12 @@ created for LEDs.
 
 ## Impacts
 
-These changes impacts the physical LEDs where it exposes one service per LED.
-The systemd service name should be changed as ***xyz.openbmc_project.LED.Controller***
-wherever multiple services are configured in the code for testing.
+These changes will have API impact since the dbus objects will exposes multiple
+LEDs path in single service. The systemd service will have single name
+***xyz.openbmc_project.LED.Controller*** instead of multiple services.
 
-Entity Manager configuration needs to be created for the physical LEDs which
-are previously created in other platforms based on udev rules to map the new
-implementation.
+Entity Manager configuration needs to be created for the physical LEDs, which
+are already existed in other platforms inorder to support this proposed design.
 
 ## Testing
 
