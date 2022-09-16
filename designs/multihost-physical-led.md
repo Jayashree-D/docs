@@ -227,8 +227,6 @@ These changes will have API impact since the dbus objects will exposes multiple
 LEDs path in single service. The systemd service will have single name
 ***xyz.openbmc_project.LED.Controller*** instead of multiple services.
 
-Entity Manager configuration needs to be created for the physical LEDs, which
-are already existed in other platforms inorder to support this proposed design.
 
 ## Testing
 
