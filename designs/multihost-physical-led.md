@@ -116,23 +116,23 @@ The below diagram represents the overview for proposed physical LED design.
       KERNEL                               PHOSPHOR-LED-SYSFS DAEMON
 
    +------------+  Event 1  +------------------------------------------------------+
-   |            |---------->|  +----------+       +-----------+       +---------+  |
-   |   LED 1    |  Event 2  |  |          |       |           |       |         |  |
-   |            |---------->|  |   UDEV   |------>|  SYSTEMD  |------>|  Shell  |  |
-   |   LED 2    |  ....     |  |  Events  |       |  SERVICE  |       |  Script |  |
-   |            |  ....     |  |          |       |           |       |         |  |
-   |   LED 3    |  Event N  |  +----------+       +-----------+       +---------+  |
-   |            |---------->|                                                |     |
-   |   LED 4    |           |                                                |     |
-   |            |           |     +---------------------------------------+  |     |
-   |  .......   |           |     |  Service :                            |  |     |
-   |  .......   |           |     |                                       |  |     |
-   |  .......   |           |     |    /xyz/openbmc_project/led/<led1>    |  |     |
-   |            |           |     |    /xyz/openbmc_project/led/<led2>    |<-|     |
-   |   LED N    |           |     |                .....                  |        |
-   |            |           |     |                .....                  |        |
-   |            |           |     |    /xyz/openbmc_project/led/<ledN>    |        |
-   +------------+           |     +---------------------------------------+        |
+   |            |---------->|  +----------+       +-----------+     +------------+ |
+   |   LED 1    |  Event 2  |  |          |       |           |     |            | |
+   |            |---------->|  |   UDEV   |------>|  SERVICE  |---->| EXECUTABLE | |
+   |   LED 2    |  ....     |  |  Events  |       |           |     |(DBUS Method| |
+   |            |  ....     |  |          |       |           |     |   Call)    | |
+   |   LED 3    |  Event N  |  +----------+       +-----------+     +------------+ |
+   |            |---------->|                                              |       |
+   |   LED 4    |           |                                              V       |
+   |            |           |  +-----------+   +---------------------------------+ |
+   |  .......   |           |  |           |   | Service :                       | |
+   |  .......   |           |  |  SYSTEMD  |   |                                 | |
+   |  .......   |           |  |  SERVICE  |   |  /xyz/openbmc_project/led/<led1>| |
+   |            |           |  |  ( LED.   |-->|  /xyz/openbmc_project/led/<led2>| |
+   |   LED N    |           |  |Controller)|   |               .....             | |
+   |            |           |  |           |   |               .....             | |
+   |            |           |  |           |   |  /xyz/openbmc_project/led/<ledN>| |
+   +------------+           |  +-----------+   +---------------------------------+ |
                             +------------------------------------------------------+
 
 ```
@@ -154,16 +154,16 @@ This document proposes a new design for physical LED implementation.
 ```
 
  - Dbus API method will be created in the phosphor-led-sysfs repository under
-   ***xyz.openbmc_project.Led.Internal*** interface to communicate between udev
-   and daemon.
+   ***xyz.openbmc_project.Led.Internal*** interface name to add or remove the
+   LED, which will be coming from each udev LED event.
 
  - udev event will be triggered for each LED and service will be invoked to
-   execute the script for each LED event.
+   run the executable for each LED event.
 
- - Script will call Dbus API method in the phosphor-led-sysfs repository using
-   busctl command to pass LED name as argument from udev.
+ - Executable will call Dbus API method in the phosphor-led-sysfs repository
+   to pass LED name as argument from udev, after the primary service started.
 
- - Phosphor-led-sysfs will have a single systemd service
+ - Phosphor-led-sysfs will have a single systemd service (primary service)
    ***(xyz.openbmc_project.led.controller.service)*** running by default at
    system startup.
 
