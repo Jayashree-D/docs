@@ -11,10 +11,10 @@ Created: July 12, 2022
 ## Problem Description
 
 SDR (Sensor Data Records) is a data record that provides platform management
-sensor type, locations, event generation and access information. A data
-records that contain information about the type and the number of sensors in
-the platform, sensor threshold support, event generation capabilities and
-information on what type of readings the sensor provides.
+sensor type, locations, event generation and access information. Data records
+contain information about the type and the number of sensors in the platform,
+sensor threshold support, event generation capabilities and information on
+what type of readings the sensor provides.
 
 The primary purpose of the Sensor Data Records is to describe the sensor
 configuration of the platform management subsystem to system software. Sensor
@@ -96,7 +96,7 @@ Following modules will be updated for this implementation.
             "Class": "IpmbDevice",
             "PowerState": "Always",
             "Name": "$bus + 1 Twinlake Board",
-            "Type": "IPMBDevice"
+            "Type": "IpmbDevice"
         }
 ```
 
@@ -154,9 +154,10 @@ Following modules will be updated for this implementation.
    request to get the next record. This is repeated until the record count
    value is matched.
 
- - Once all the sensor information like sensor name, sensor type, sensor unit,
-   threshold values and sensor number are read, each data will be processed
-   and stored in a map for each IPMB device.
+ - All the sensor information like sensor name, sensor type, sensor unit,
+   threshold values and sensor number are read for each sensor using Get SDR
+   commands. After that, sensor information will be processed and stored in
+   a map for each IPMB device.
 
  - For each interface (xyz.openbmc_project.Configuration.IpmbDevice) detected
    for IPMB device, all the sensors related to that IPMB device will be
