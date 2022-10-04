@@ -1,26 +1,44 @@
 ____
-# Design Guidelines - *Delete this section*
+# Document Guidelines - *Delete this section*
 
+## Document Content
 * Not all new features need a design document. If a feature can be
   contributed in a single reasonably small patchset that has little impact
   to any other areas, it doesn't need a design discussion and documentation.
-* The focus of the design is to define the problem we need to solve and how it
-  will be implemented.
+
+* The focus of the document is to define the problem we need to solve and
+  analyse the trade-offs of different solutions. You should concentrate on
+  interactions between components, though analysing the trade-offs often
+  requires you to explore how each might be implemented.
+
+* Write this document as an [argumentative essay][argumentative-essay]. Good
+  design proposals compel the reviewers agree with the proposal's conclusions.
+
+[argumentative-essay]: https://www.grammarly.com/blog/argumentative-essay/
+
 * This is not intended to be extensive documentation for a new feature.
+
 * You should get your design reviewed and merged before writing your code.
   However you are free to prototype the implementation, but remember that
   you may learn of new requirements during the design review process that
   could result in a very different solution.
+
+## Document Formatting
 * Your spec should be in Markdown format, like this template.
+
 * Please wrap text at 79 columns.
+
 * Please do not delete any of the sections in this template.  If you have
   nothing to say for a whole section, just write: None
+
 * To view your .md file, see: https://stackedit.io/
+
 * If you would like to provide a diagram with your spec, ASCII diagrams are
   required.  http://asciiflow.com/ is a very nice tool to assist with making
   ASCII diagrams.  Plain text will allow the review to proceed without
   having to look at additional files which can not be viewed in Gerrit.  It
   will also allow inline feedback on the diagram itself.
+
 * Once ready for review, submit to gerrit and set the topic of the review
   to "design"
 ____
@@ -81,8 +99,10 @@ API impact? Security impact? Documentation impact? Performance impact?
 Developer impact? Upgradability impact?
 
 ### Organizational
-Does this repository require a new repository?  (Yes, No)
-Who will be the initial maintainer(s) of this repository?
+- Does this repository require a new repository?  (Yes, No)
+- Who will be the initial maintainer(s) of this repository?
+- Which repositories are expected to be modified to execute this design?
+- Make a list, and add listed repository maintainers to the gerrit review.
 
 ## Testing
 How will this be tested? How will this feature impact CI testing?
