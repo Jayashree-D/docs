@@ -32,38 +32,21 @@
 # data within them will be kept sorted.
 
 owners:
-- patrick@stwcx.xyz
-
-reviewers:
 - andrew@aj.id.au
-- anoo@us.ibm.com
+- geissonator@yahoo.com
 - gmills@linux.vnet.ibm.com
 
+reviewers:
+
 matchers:
-- exact: designs/device-tree-gpio-naming.md
-  reviewers:
-  - andrew@aj.id.au
-  - joel@jms.id.au
-- partial_regex: mctp
-  reviewers:
-  - jk@ozlabs.org
 
 openbmc:
-- name: Adriana Kobylak
-  email: anoo@us.ibm.com
-  discord: anoo
 - name: Andrew Jeffery
   email: andrew@aj.id.au
   discord: arj
+- name: Andrew Geissler
+  email: geissonator@yahoo.com
+  discord: geissonator
 - name: Gunnar Mills
   email: gmills@linux.vnet.ibm.com
   discord: GunnarM
-- name: Jeremy Kerr
-  email: jk@ozlabs.org
-  discord: jk
-- name: Joel Stanley
-  email: joel@jms.id.au
-  discord: joel
-- name: Patrick Williams
-  email: patrick@stwcx.xyz
-  discord: stwcx
